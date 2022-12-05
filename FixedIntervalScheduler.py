@@ -85,12 +85,14 @@ FixedIntervalTask[
             return False
         # 检查离输入时间点最近的 且小于输入时间点的 应该执行任务的时间点
         n = None
+        a_running_timing = None
         for n, a_running_timing in enumerate(self.running_timing[::-1]):
             if timing >= a_running_timing:
                 break
         if not n:
             return False
-        _nearly_running_timing_small = self.running_timing[-n]
+        _nearly_running_timing_small = a_running_timing
+        print(timing, self.last_running_timing, _nearly_running_timing_small)
         # 对比
         if _nearly_running_timing_small < self.last_running_timing:
             return False
@@ -155,7 +157,6 @@ FixedIntervalTask[
         self._update_running_task_id()
         self.logger.info(f'running task, {self.name}, {self.running_task_id}')
         _success = _run()
-        _success = False
         if _success:
             self.logger.info(f'finished task, {self.name}, {self.running_task_id}')
             self.is_in_running = False
@@ -330,8 +331,7 @@ class FixedIntervalScheduler:
 
 
 def t():
-    scheduler = FixedIntervalScheduler(
-        r'D:\_workspace\alphasys\AlphaSysGuardingPlatform\_Tools\AGP.FixedIntervalScheduler\Config\TaskList')
+    scheduler = FixedIntervalScheduler(os.path.join(PATH_ROOT, "Config/TaskList"))
     scheduler.run()
 
 
