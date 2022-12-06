@@ -1,6 +1,8 @@
 # FixedIntervalScheduler
 
-在日内固定时间区间,按固定时间间隔运行的定时任务器。
+在日内固定时间区间,按固定时间间隔运行的定时任务器。   
+任务器不会对任务运行的结果或报错进行处理; 任务器只触发任务启动并在任务结束后等待下一次任务; 如果需要阻塞,只能在任务内部进行阻塞; 
+任务无法通过Exception和Error 以阻塞程序运行. 
 
 ## 运行
 
@@ -48,7 +50,8 @@ exit
 
 1. 读取配置, 将每个任务 实例化为 FixedIntervalTask对象. 初始化时根据 running_time 和 interval, 计算出运行的时间点 running_timing 
 2. 初始化 任务器 FixedIntervalScheduler对象, 负责调用 FixedIntervalTask对象
-3. FixedIntervalScheduler对象 每间隔1秒, 通过调用 FixedIntervalTask对象的检查方法, 判断当前时间点是否 需要执行任务
+3. FixedIntervalScheduler对象 每间隔 5 秒, 通过调用 FixedIntervalTask对象的检查方法, 判断当前时间点是否 需要执行任务
 4. 若任务需要执行,启动新线程运行,并将 FixedIntervalTask对象的状态设置为 is_in_running=True,在此次任务结束前,不会重复运行该任务
-5. 如果任务运行失败,报错并尝试重新运行,不阻塞
+5. 如果任务运行失败,报错并尝试重新运行,不阻塞.
+
 

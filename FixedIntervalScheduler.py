@@ -209,10 +209,16 @@ class FixedIntervalScheduler:
 
 
     """
-    def __init__(self, path_task_config_folder, logger=MyLogger('FixedIntervalScheduler')):
+    def __init__(
+            self, path_task_config_folder,
+            scheduler_interval=5,
+            logger=MyLogger('FixedIntervalScheduler')
+    ):
         self.p_task_config_folder = os.path.abspath(path_task_config_folder)
         # 任务实例
         self.l_scheduler_tasks: List[FixedIntervalTask] = self._create_tasks()
+        # 间隔多少秒 进行检查
+        self.scheduler_interval = int(scheduler_interval)
 
         self.logger = logger
 
@@ -326,13 +332,14 @@ class FixedIntervalScheduler:
                             args=[_time]
                         )
                         _threading.start()
-            # 间隔1s，避免性能占用
-            sleep(1)
+            # 间隔5s，避免性能占用
+            sleep(self.scheduler_interval)
 
 
 def t():
     scheduler = FixedIntervalScheduler(
         os.path.join(PATH_ROOT, "Config/TaskList"),
+        scheduler_interval=5,
         logger=MyLogger('Scheduler', output_root=os.path.join(PATH_ROOT, 'logs'))
     )
     scheduler.run()
