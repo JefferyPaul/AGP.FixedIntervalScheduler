@@ -91,10 +91,13 @@ FixedIntervalTask[
                 break
             else:
                 target_n = n
-        if not target_n:
-            # target_n == 0 or target_n is None
+        if target_n is None:
+            # target_n is None
             return False
-        _nearly_running_timing_small = self.running_timing[target_n-1]
+        if target_n == -1:
+            # timing < self.running_timing[0]
+            return False
+        _nearly_running_timing_small = self.running_timing[target_n]
         # print(timing, self.last_running_timing, _nearly_running_timing_small)
         # 对比
         if _nearly_running_timing_small <= self.last_running_timing:
@@ -106,13 +109,16 @@ FixedIntervalTask[
     def run_task(self, timing):
         def _run() -> bool:
             p = subprocess.Popen(
+                #     # args
+                #     # 最好传递一个sequence，因为它允许模块处理任何必需的参数转义和引用;
+                #     # 如果传递的是字符串，则shell必须为True; 否则该字符串必须简单地为要执行的程序的名字，而不能指定任何参数。
                 # 'main.py',
                 # self.running_bat_path,
-                f"start {self.running_bat_path}",
+                f"{self.running_bat_path}",
                 # f'call "{self.running_bat_path}"',
                 cwd=os.path.dirname(self.running_bat_path),
-                stdout=subprocess.PIPE,
-                shell=True,
+                # stdout=subprocess.PIPE,
+                # shell=True,
                 creationflags=subprocess.CREATE_NEW_CONSOLE
             )
 
@@ -120,33 +126,30 @@ FixedIntervalTask[
                 outs, errs = p.communicate()
                 # self.logger.info('communicated')
                 if outs:
-                    outs = str(outs, encoding="utf-8")
+                    outs = outs.decode()
                 else:
                     outs = ''
                 if errs:
-                    errs = str(errs, encoding='utf-8')
+                    errs = errs.decode()
                 else:
                     errs = ''
             except subprocess.TimeoutExpired as e:
-                p.kill()
                 self.logger.error(e)
                 return False
             except Exception as e:
-                p.kill()
                 self.logger.error(e)
                 return False
             else:
                 if errs:
-                    p.kill()
                     self.logger.error(errs)
                     return False
-                elif 'Exception' in outs:
-                    p.kill()
+                elif 'exception' in outs.lower():
                     self.logger.error(outs)
                     return False
                 else:
-                    p.kill()
                     return True
+            finally:
+                p.kill()
 
         #
         self.is_in_running = True

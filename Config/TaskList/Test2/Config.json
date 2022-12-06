@@ -1,4 +1,8 @@
 {
   "name": "test_2",
-  "interval": 20
+  "running_time": [
+    ["9:00:00", "23:00:00"]
+  ],
+  "interval": 10,
+  "skip_holiday": false
 }
