@@ -81,27 +81,24 @@ FixedIntervalTask[
     def is_running_timing(self, timing: time) -> bool:
         # 检查 输入的时间点，是否应该运行任务
         # 小于上一次执行任务的时间
-        if timing <= self.last_running_timing:
+        if len(self.running_time) == 0:
             return False
         # 检查离输入时间点最近的 且小于输入时间点的 应该执行任务的时间点
-        n = None
-        a_running_timing = None
-        for n, a_running_timing in enumerate(self.running_timing[::-1]):
-            if timing >= a_running_timing:
+        target_n = None
+        for n, a_running_timing in enumerate(self.running_timing):
+            if timing < a_running_timing:
+                target_n = n - 1
                 break
-        if not n:
-            return False
-        _nearly_running_timing_small = a_running_timing
-        print(timing, self.last_running_timing, _nearly_running_timing_small)
-        # 对比
-        if _nearly_running_timing_small < self.last_running_timing:
-            return False
-        elif _nearly_running_timing_small == self.last_running_timing:
-            if n+1 < len(self.running_timing):
-                # self.last_running_timing = timing
-                return True
             else:
-                return False
+                target_n = n
+        if not target_n:
+            # target_n == 0 or target_n is None
+            return False
+        _nearly_running_timing_small = self.running_timing[target_n-1]
+        # print(timing, self.last_running_timing, _nearly_running_timing_small)
+        # 对比
+        if _nearly_running_timing_small <= self.last_running_timing:
+            return False
         else:
             # self.last_running_timing = timing
             return True
@@ -331,7 +328,10 @@ class FixedIntervalScheduler:
 
 
 def t():
-    scheduler = FixedIntervalScheduler(os.path.join(PATH_ROOT, "Config/TaskList"))
+    scheduler = FixedIntervalScheduler(
+        os.path.join(PATH_ROOT, "Config/TaskList"),
+        logger=MyLogger('Scheduler', output_root=os.path.join(PATH_ROOT, 'logs'))
+    )
     scheduler.run()
 
 
