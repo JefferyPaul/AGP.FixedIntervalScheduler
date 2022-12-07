@@ -8,14 +8,15 @@
                 - subprocess.Popen(bat)
                 - 如果报错，则 Exception， 但是不会影响其他线程运行，也不会影响此任务的其他执行
         -
-# TODO 捕获错误 并暂停任务
+
+# TODO 运行情况记录
 """
 
 import os
 import shutil
 import sys
 from time import sleep
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, date
 import threading
 from typing import List, Dict
 from collections import defaultdict, namedtuple
@@ -41,12 +42,14 @@ class FixedIntervalTask:
         assert type(skip_holiday) is bool
         self.name = name
         self.interval = int(interval)
-        self.running_time: List[List[time]] = [[_.time() for _ in _l] for _l in running_time]
-        self.running_timing: List[time] = self._gen_running_timing(running_time)            # 运行时间点
+        self.running_time_list: List[List[time]] = [[_.time() for _ in _l] for _l in running_time]
+        self._running_timing: List[time] = self._gen_running_timing(running_time)            # 运行时间点
         self.running_bat_path = running_bat
         self.skip_holiday = skip_holiday
         # 上一次运行的时间time
         self.last_running_timing: time = time(hour=0, minute=0, second=0)
+        self._last_running_date: date = datetime(year=2000, month=1, day=1).date()
+        self._last_running_num: int = 0
         # 是否正在执行任务
         self.is_in_running = False
         # 运行编号
@@ -54,6 +57,10 @@ class FixedIntervalTask:
 
         self.logger = logger
         print(str(self))
+
+    @property
+    def running_timing(self) -> List[time]:
+        return self._running_timing
 
     def _gen_running_timing(self, running_time):
         l_running_timing: List[time] = []
@@ -72,7 +79,8 @@ class FixedIntervalTask:
 FixedIntervalTask[
     Name: {self.name},
     RunningBatch: {str(self.running_bat_path)},
-    RunningTime: {str(self.running_time)},
+    RunningTime: {str(self.running_time_list)},
+    RunningTimingCount: {str(len(self.running_timing))}
     Interval: {str(self.interval)} s,
     SkipHoliday: {str(self.skip_holiday)},
 ]            
@@ -81,7 +89,7 @@ FixedIntervalTask[
     def is_running_timing(self, timing: time) -> bool:
         # 检查 输入的时间点，是否应该运行任务
         # 小于上一次执行任务的时间
-        if len(self.running_time) == 0:
+        if len(self.running_time_list) == 0:
             return False
         # 检查离输入时间点最近的 且小于输入时间点的 应该执行任务的时间点
         target_n = None
@@ -103,7 +111,6 @@ FixedIntervalTask[
         if _nearly_running_timing_small <= self.last_running_timing:
             return False
         else:
-            # self.last_running_timing = timing
             return True
 
     def run_task(self, timing):
@@ -153,9 +160,9 @@ FixedIntervalTask[
 
         #
         self.is_in_running = True
-        self.last_running_timing = timing
         self._update_running_task_id()
-        self.logger.info(f'running task, {self.name}, {self.running_task_id}')
+        self.last_running_timing = timing
+        self.logger.info(f'start task, {self.name}, {self.running_task_id}')
         _success = _run()
         if _success:
             self.logger.info(f'finished task, {self.name}, {self.running_task_id}')
@@ -166,27 +173,17 @@ FixedIntervalTask[
             raise Exception
 
     def _update_running_task_id(self):
-        _last_id_date = self.running_task_id.split('_')[0]
-        _last_id_num = self.running_task_id.split('_')[-1]
-        if _last_id_num == '':
-            _last_id_num = 0
-        else:
-            _last_id_num = float(_last_id_num)
-        _new_date = datetime.now().strftime('%Y%m%d')
-        if _new_date != _last_id_date:
-            _new_num = 1
-        else:
-            _new_num = _last_id_num + 1
-        self.running_task_id = f'{_new_date}_{str(int(_new_num))}'
+        _today_date = datetime.now().date()
+        if _today_date != self._last_running_date:
+            self._init_in_new_date()
+        self._last_running_num += 1
+        self.running_task_id = f'{self._last_running_date.strftime("%Y%m%d")}_{str(self._last_running_num)}'
         return self.running_task_id
 
-    @property
-    def running_num(self) -> int:
-        _num = self.running_task_id.split('_')[1]
-        if _num == "":
-            return 0
-        else:
-            return int(_num)
+    def _init_in_new_date(self):
+        self.last_running_timing: time = time(hour=0, minute=0, second=0)
+        self._last_running_date = datetime.now().date()
+        self._last_running_num = 0
 
 
 class FixedIntervalScheduler:
@@ -315,7 +312,6 @@ class FixedIntervalScheduler:
     def run(self):
         while True:
             _now = datetime.now()
-            _date = _now.date()
             _time = _now.time()
             _is_weekend = _now.weekday() >= 5
             for _task in self.l_scheduler_tasks:
