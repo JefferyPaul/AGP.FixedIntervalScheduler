@@ -53,7 +53,7 @@ class FixedIntervalTask:
         # 是否正在执行任务
         self.is_in_running = False
         # 运行编号
-        self.running_task_id = '_'
+        self.running_task_id = ''
 
         self.logger = logger
         print(str(self))
@@ -87,6 +87,10 @@ FixedIntervalTask[
         """
 
     def is_running_timing(self, timing: time) -> bool:
+        # 判断是否新的一天
+        if datetime.now().date() != self._last_running_date:
+            self._refresh_in_new_date()
+
         # 检查 输入的时间点，是否应该运行任务
         # 小于上一次执行任务的时间
         if len(self.running_time_list) == 0:
@@ -173,14 +177,11 @@ FixedIntervalTask[
             raise Exception
 
     def _update_running_task_id(self):
-        _today_date = datetime.now().date()
-        if _today_date != self._last_running_date:
-            self._init_in_new_date()
         self._last_running_num += 1
         self.running_task_id = f'{self._last_running_date.strftime("%Y%m%d")}_{str(self._last_running_num)}'
         return self.running_task_id
 
-    def _init_in_new_date(self):
+    def _refresh_in_new_date(self):
         self.last_running_timing: time = time(hour=0, minute=0, second=0)
         self._last_running_date = datetime.now().date()
         self._last_running_num = 0
